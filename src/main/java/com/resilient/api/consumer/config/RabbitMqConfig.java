@@ -23,6 +23,16 @@ public class RabbitMqConfig {
         return new Queue("error.v1");
     }
 
+    /*
+
+     Retry-able messages are published to the retry queue. where a retry queue is configured(X, Y) such that,
+     the messages which are published to this queue are moved to the source queue and retried for X number
+     of times for every Y interval of time.
+
+     Retry count Y is managed by the code.
+
+     */
+
     @Bean
     public Queue retryQueue(){
         return QueueBuilder.durable("retry.v1")

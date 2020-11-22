@@ -22,25 +22,32 @@ public class ConsumerService {
         try {
 
             /*
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-            String uri = "http://mockurl.com/";
 
-            restTemplate.postForObject(uri, messageRecordEvent, String.class);
+            In general, Here the call to the internal/external service call takes place
+            using feign client or rest template. eg:
+            restTemplate.postForObject("http://mockurl.com/", messageRecordEvent, String.class);
 
              */
 
+
+            // Throwing HttpClientErrorException to emulate the retry mechanism
             throw new HttpClientErrorException(HttpStatus.SERVICE_UNAVAILABLE);
 
 
         } catch (HttpClientErrorException ex){
 
-            if(messageRecordEvent.getRetryCount() <= 5) {
+            /*
+
+            Here is the block of code to determine the Retryable and non retryable exceptions
+            retry count is managed here
+
+             */
+
+            if(messageRecordEvent.getRetryCount() < 5) {
 
                     if(ex.getStatusCode() != HttpStatus.BAD_REQUEST && ex.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
 
-                        log.error("Encountered a retry exception, retrying message for {} time", messageRecordEvent.getRetryCount());
+                        log.error("Encountered a retry exception,Retrying with retry count {}", messageRecordEvent.getRetryCount());
 
                         messageRecordEvent.setRetryCount(messageRecordEvent.getRetryCount()+1);
                         messageSender.publishEvent("consumer-exchange", "retry.key", messageRecordEvent);
@@ -49,7 +56,7 @@ public class ConsumerService {
                     }
 
             }else {
-                log.error("Message failed to process after {} times retires", messageRecordEvent.getRetryCount());
+                log.error("Message failed to process after {}  retires, Redirecting to Error queue", messageRecordEvent.getRetryCount());
                 redirectToErrorQueue(messageRecordEvent);
 
             }
